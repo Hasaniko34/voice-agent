@@ -1,19 +1,57 @@
-"use client";
+'use client'
 
+import { useState, useEffect, useCallback } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useQueue } from "@uidotdev/usehooks";
+import Siriwave from 'react-siriwave';
+import { FiArrowLeft, FiMic, FiSettings } from 'react-icons/fi';
 import {
   CreateProjectKeyResponse,
   LiveClient,
   LiveTranscriptionEvents,
   createClient,
 } from "@deepgram/sdk";
-import { useState, useEffect, useCallback, } from "react";
-import { useQueue } from "@uidotdev/usehooks";
-import Recording from "./recording.svg";
-import axios from "axios";
-import Siriwave from 'react-siriwave';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-export default function Microphone() {
+// Demo Voice Agent verileri
+const demoAgents = [
+  {
+    id: '1',
+    name: 'Türkçe Asistan',
+    description: 'Türkçe konuşan ve yanıt veren bir asistan',
+    prompt: 'Sen Türkçe konuşan yardımcı bir asistansın. Kullanıcının sorularına nazik ve bilgilendirici bir şekilde cevap ver.',
+    voice: 'shimmer',
+  },
+  {
+    id: '2',
+    name: 'Müzik Uzmanı',
+    description: 'Müzik hakkında bilgi veren bir agent',
+    prompt: 'Sen bir müzik uzmanısın. Müzik türleri, sanatçılar ve albümler hakkında detaylı bilgi verebilirsin.',
+    voice: 'nova',
+  }
+];
+
+export default function VoiceAgentChat() {
+  const params = useParams();
+  const router = useRouter();
+  const agentId = params.id as string;
+  
+  // Voice Agent'ı bulma
+  const [agent, setAgent] = useState(() => {
+    const found = demoAgents.find(a => a.id === agentId);
+    if (!found) {
+      // Router burada etkin olmadığından, useEffect içinde yönlendireceğiz
+      return null;
+    }
+    return found;
+  });
+  
+  useEffect(() => {
+    if (!agent) {
+      router.push('/dashboard/voice-agents');
+    }
+  }, [agent, router]);
+  
   const { add, remove, first, size, queue } = useQueue<any>([]);
   const [apiKey, setApiKey] = useState<CreateProjectKeyResponse | null>();
   const [openaiApiKey, setOpenaiApiKey] = useState<string | null>();
@@ -29,7 +67,8 @@ export default function Microphone() {
   const [userMedia, setUserMedia] = useState<MediaStream | null>();
   const [caption, setCaption] = useState<string | null>();
   const [audio, setAudio] = useState<HTMLAudioElement | null>();
-
+  
+  // Mikrofon açma/kapama
   const toggleMicrophone = useCallback(async () => {
     if (microphone && userMedia) {
       setUserMedia(null);
@@ -61,21 +100,22 @@ export default function Microphone() {
     }
   }, [add, microphone, userMedia]);
 
+  // API anahtarlarını alma
   useEffect(() => {
     if (!geminiApiKey) {
-      console.log("getting a new gemini api key");
+      console.log("Gemini API anahtarı alınıyor...");
       fetch("/api/gemini", { cache: "no-store" })
         .then((res) => res.json())
         .then((object) => {
-          if (!("apiKey" in object)) throw new Error("No gemini api key returned");
-          console.log(object);
+          if (!("apiKey" in object)) throw new Error("Gemini API anahtarı bulunamadı");
+          console.log("Gemini API anahtarı alındı");
           setGeminiApiKey(object.apiKey);
           const genAI = new GoogleGenerativeAI(object.apiKey);
           setGeminiClient(genAI);
           setLoadingKey(false);
         })
         .catch((e) => {
-          console.error(e);
+          console.error("Gemini API anahtarı alınamadı:", e);
         });
     }
   }, [geminiApiKey]);
@@ -99,24 +139,25 @@ export default function Microphone() {
 
   useEffect(() => {
     if (!apiKey) {
-      console.log("getting a new api key");
+      console.log("Deepgram API anahtarı alınıyor...");
       fetch("/api/deepgram", { cache: "no-store" })
         .then((res) => res.json())
         .then((object) => {
-          if (!("key" in object)) throw new Error("No api key returned");
-          console.log(object)
+          if (!("key" in object)) throw new Error("Deepgram API anahtarı bulunamadı");
+          console.log("Deepgram API anahtarı alındı");
           setApiKey(object);
           setLoadingKey(false);
         })
         .catch((e) => {
-          console.error(e);
+          console.error("Deepgram API anahtarı alınamadı:", e);
         });
     }
   }, [apiKey]);
 
+  // Deepgram bağlantısı kurma
   useEffect(() => {
     if (apiKey && "key" in apiKey) {
-      console.log("connecting to deepgram");
+      console.log("Deepgram'a bağlanılıyor...");
       const deepgram = createClient(apiKey?.key ?? "");
       const connection = deepgram.listen.live({
         model: "nova-2",
@@ -125,7 +166,7 @@ export default function Microphone() {
       });
 
       connection.on(LiveTranscriptionEvents.Open, () => {
-        console.log("connection established");
+        console.log("Bağlantı kuruldu");
         setListening(true);
       });
 
@@ -137,19 +178,15 @@ export default function Microphone() {
         console.warn("Deepgram uyarısı:", warning);
       });
 
-      connection.on(LiveTranscriptionEvents.Metadata, (metadata) => {
-        console.log("Deepgram metadata:", metadata);
-      });
-
       connection.on(LiveTranscriptionEvents.Close, () => {
-        console.log("connection closed");
+        console.log("Bağlantı kapandı");
         setListening(false);
         setApiKey(null);
         setConnection(null);
       });
 
       connection.on(LiveTranscriptionEvents.Transcript, async (data) => {
-        console.log("Deepgram'dan metin alındı:", data);
+        console.log("Deepgram'dan metin alındı");
         const words = data.channel.alternatives[0].words;
         const caption = words
           .map((word: any) => word.punctuated_word ?? word.word)
@@ -158,19 +195,22 @@ export default function Microphone() {
           console.log("Tanınan metin:", caption);
           setCaption(caption);
           if (data.is_final) {
-            if (geminiClient) {
+            if (geminiClient && agent) {
               try {
                 console.log("Gemini API'ye istek gönderiliyor...");
                 const model = geminiClient.getGenerativeModel({ 
                   model: "gemini-2.0-flash",
                   generationConfig: {
                     maxOutputTokens: 100, // Token sayısını sınırlayarak yanıt uzunluğunu kısıtla
-                    temperature: 0.7,
-                    topP: 0.9,
+                    temperature: 0.7,     // Biraz yaratıcılık için
+                    topP: 0.9,            // Daha tutarlı yanıtlar için
                   }
                 });
                 
-                const prompt = `Sen Türkçe konuşan bir sesli asistansın. Kullanıcı Türkçe konuşuyor ve sen de SADECE Türkçe yanıt vermelisin. Yanıtların kısa ve öz olmalı, maksimum 1-2 cümle kullan. Kullanıcının söylediği: "${caption}"`;
+                // Agent'ın özelleştirilmiş prompt'unu kullanma
+                const prompt = `${agent.prompt} Kullanıcının söylediği: "${caption}"
+
+ÖNEMLİ: Lütfen kısa ve öz cevaplar ver. Maksimum 1-2 cümle kullan. Uzun açıklamalardan kaçın.`;
                 
                 const result = await model.generateContent(prompt);
                 const response = await result.response;
@@ -183,9 +223,8 @@ export default function Microphone() {
                   
                   if (openaiApiKey) {
                     try {
-                      // OpenAI TTS API kullanarak TTS yapın
+                      // OpenAI TTS API kullanarak TTS yapma
                       console.log("OpenAI TTS denemesi yapılıyor...");
-                      console.log("Kullanılan OpenAI API anahtarı:", openaiApiKey ? "Anahtar mevcut" : "Anahtar yok");
                       
                       fetch("https://api.openai.com/v1/audio/speech", {
                         method: "POST",
@@ -195,13 +234,12 @@ export default function Microphone() {
                         },
                         body: JSON.stringify({
                           model: "tts-1-hd", // Daha yüksek kaliteli model
-                          voice: "shimmer",  // Türkçe için en uygun ses
+                          voice: agent.voice,  // Agent'a özel ses
                           input: text,
-                          speed: 1.0         // Normal hız
+                          speed: 1.0
                         })
                       })
                       .then(response => {
-                        console.log("OpenAI TTS API yanıtı alındı:", response.status, response.statusText);
                         if (!response.ok) {
                           console.log(`OpenAI TTS HTTP Hatası: ${response.status} - ${response.statusText}`);
                           throw new Error(`HTTP hata: ${response.status}`);
@@ -214,15 +252,7 @@ export default function Microphone() {
                         
                         const audio = new Audio(url);
                         setAudio(audio);
-                        console.log("OpenAI TTS ses çalınıyor.");
-                        
-                        audio.onplay = () => {
-                          console.log("Ses çalmaya başladı");
-                        };
-                        
-                        audio.onended = () => {
-                          console.log("Ses çalma tamamlandı");
-                        };
+                        console.log("OpenAI TTS ses çalınıyor");
                         
                         audio.play().catch(error => {
                           console.error("Ses çalma hatası:", error);
@@ -247,7 +277,7 @@ export default function Microphone() {
                   }
                 }
               } catch (error) {
-                console.error("Gemini API error:", error);
+                console.error("Gemini API hatası:", error);
               }
             }
           }
@@ -257,8 +287,9 @@ export default function Microphone() {
       setConnection(connection);
       setLoading(false);
     }
-  }, [apiKey, geminiClient, openaiApiKey]);
+  }, [apiKey, agent, geminiClient, openaiApiKey]);
 
+  // Queue işlemleri
   useEffect(() => {
     const processQueue = async () => {
       if (size > 0 && !isProcessing) {
@@ -288,24 +319,10 @@ export default function Microphone() {
   function browserTTS(text: string) {
     if ('speechSynthesis' in window) {
       console.log("Tarayıcı TTS kullanılıyor...");
-      console.log("Okunacak metin:", text);
-      
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'tr-TR';
       utterance.rate = 1.0;
       utterance.pitch = 1.0;
-      
-      utterance.onstart = () => {
-        console.log("Browser TTS konuşmaya başladı");
-      };
-      
-      utterance.onend = () => {
-        console.log("Browser TTS konuşma bitti");
-      };
-      
-      utterance.onerror = (event) => {
-        console.error("Browser TTS hatası:", event);
-      };
       
       // Sesleri yükle ve Türkçe sesi bul
       let voices = window.speechSynthesis.getVoices();
@@ -338,46 +355,79 @@ export default function Microphone() {
     }
   }
 
-  // API anahtarlarının doğru yüklenip yüklenmediğini kontrol eden fonksiyon
-  useEffect(() => {
-    console.log("API Durum kontrolü:");
-    console.log("Deepgram API:", apiKey ? "Yüklendi" : "Yüklenmedi");
-    console.log("Gemini API:", geminiApiKey ? "Yüklendi" : "Yüklenmedi");
-    console.log("OpenAI API:", openaiApiKey ? "Yüklendi" : "Yüklenmedi");
-  }, [apiKey, geminiApiKey, openaiApiKey]);
-
+  if (!agent) return null;
+  
   if (isLoadingKey)
     return (
-      <span className="w-full text-center">API anahtarları yükleniyor...</span>
-    );
-  if (isLoading)
-    return <span className="w-full text-center">Uygulama yükleniyor...</span>;
-
-  return (
-    <div className="w-full relative">
-      <div className="relative flex w-screen flex justify-center items-center max-w-screen-lg place-items-center content-center before:pointer-events-none after:pointer-events-none before:absolute before:right-0 after:right-1/4 before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px]">
-        <Siriwave
-          theme="ios9"
-          autostart={handleAudio() || false}
-        />
-      </div>
-      <div className="mt-10 flex flex-col align-middle items-center">
-        <button className="w-24 h-24" onClick={() => toggleMicrophone()}>
-          <Recording
-            width="96"
-            height="96"
-            className={
-              `cursor-pointer` + !!userMedia && !!microphone && micOpen
-                ? "fill-red-400 drop-shadow-glowRed"
-                : "fill-gray-600"
-            }
-          />
-        </button>
-        <div className="mt-20 p-6 text-xl text-center">
-          {caption}
+      <div className="flex flex-col items-center justify-center h-full">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+          <span className="text-xl">API anahtarları yükleniyor...</span>
         </div>
       </div>
+    );
+    
+  if (isLoading)
+    return (
+      <div className="flex flex-col items-center justify-center h-full">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+          <span className="text-xl">Bağlantı kuruluyor...</span>
+        </div>
+      </div>
+    );
 
+  return (
+    <div className="h-full flex flex-col">
+      <div className="bg-white border-b p-4 flex justify-between items-center">
+        <div className="flex items-center">
+          <button 
+            onClick={() => router.push('/dashboard/voice-agents')}
+            className="mr-4 p-2 rounded-full hover:bg-gray-100"
+            aria-label="Geri Git"
+          >
+            <FiArrowLeft size={20} />
+          </button>
+          <div>
+            <h1 className="text-xl font-semibold text-gray-800">{agent.name}</h1>
+            <p className="text-sm text-gray-500">{agent.description}</p>
+          </div>
+        </div>
+        <button 
+          className="p-2 rounded-full hover:bg-gray-100"
+          onClick={() => router.push(`/dashboard/voice-agents/${agent.id}/edit`)}
+          aria-label="Ayarlar"
+        >
+          <FiSettings size={20} />
+        </button>
+      </div>
+      
+      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 p-6">
+        <div className="w-full max-w-3xl mx-auto flex flex-col items-center">
+          <div className="relative w-full h-24 mb-12">
+            <Siriwave
+              theme="ios9"
+              autostart={handleAudio() || false}
+            />
+          </div>
+          
+          <button 
+            className={`w-24 h-24 rounded-full flex items-center justify-center transition-colors ${micOpen ? 'bg-red-100' : 'bg-blue-100 hover:bg-blue-200'}`}
+            onClick={toggleMicrophone}
+          >
+            <FiMic 
+              size={48} 
+              className={`transition-colors ${micOpen ? 'text-red-500' : 'text-blue-600'}`} 
+            />
+          </button>
+          
+          <div className="mt-12 p-6 max-w-xl w-full mx-auto bg-white rounded-lg shadow-sm border border-gray-200 min-h-[120px]">
+            <p className="text-xl text-center text-gray-800">
+              {caption || `Mikrofona tıklayıp ${agent.name} ile konuşmaya başlayın.`}
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
-}
+} 

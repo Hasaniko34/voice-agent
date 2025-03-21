@@ -1,17 +1,19 @@
 'use client'
-import Image from "next/image";
-import Microphone from "./microphone";
-import { FaGithub } from "react-icons/fa";
-import { CiLinkedin } from "react-icons/ci";
-import Siriwave from 'react-siriwave';
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-export default async function Home() {
+export default function Home() {
+  const router = useRouter();
+  
+  useEffect(() => {
+    router.push('/dashboard');
+  }, [router]);
+  
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="mb-32 flex justify-center items-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4">
-        <Microphone />
-      </div>
+    <main className="flex min-h-screen flex-col items-center justify-center p-24">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+      <span className="text-xl">Yönlendiriliyor...</span>
     </main>
   );
 }
