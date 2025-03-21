@@ -1,13 +1,14 @@
 'use client'
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FiPlus, FiMic, FiMessageSquare, FiEdit, FiTrash2 } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 
 // Voice Agent tipi
 type VoiceAgent = {
-  id: string;
+  _id?: string;
+  id?: string;
   name: string;
   description: string;
   prompt: string;
@@ -15,34 +16,64 @@ type VoiceAgent = {
   createdAt: Date;
 };
 
-// Örnek veri
-const demoAgents: VoiceAgent[] = [
-  {
-    id: '1',
-    name: 'Türkçe Asistan',
-    description: 'Türkçe konuşan ve yanıt veren bir asistan',
-    prompt: 'Sen Türkçe konuşan yardımcı bir asistansın. Kullanıcının sorularına nazik ve bilgilendirici bir şekilde cevap ver.',
-    voice: 'shimmer',
-    createdAt: new Date('2023-03-15')
-  },
-  {
-    id: '2',
-    name: 'Müzik Uzmanı',
-    description: 'Müzik hakkında bilgi veren bir agent',
-    prompt: 'Sen bir müzik uzmanısın. Müzik türleri, sanatçılar ve albümler hakkında detaylı bilgi verebilirsin.',
-    voice: 'nova',
-    createdAt: new Date('2023-03-16')
-  }
-];
-
 export default function VoiceAgents() {
   const router = useRouter();
-  const [agents, setAgents] = useState<VoiceAgent[]>(demoAgents);
+  const [agents, setAgents] = useState<VoiceAgent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Voice Agent'ları getir
+  useEffect(() => {
+    const fetchAgents = async () => {
+      try {
+        const response = await fetch('/api/voice-agents');
+        
+        if (!response.ok) {
+          throw new Error('Voice Agent\'lar getirilemedi');
+        }
+        
+        const data = await response.json();
+        setAgents(data);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Voice Agent\'lar yüklenirken hata:', error);
+        setIsLoading(false);
+      }
+    };
+    
+    fetchAgents();
+  }, []);
   
   // Agent silme işlevi
-  const deleteAgent = (id: string) => {
-    setAgents(agents.filter(agent => agent.id !== id));
+  const deleteAgent = async (id: string) => {
+    if (!confirm('Bu Voice Agent\'ı silmek istediğinizden emin misiniz?')) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/voice-agents?id=${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Voice Agent silinirken bir hata oluştu');
+      }
+      
+      // UI'dan kaldır
+      setAgents(agents.filter(agent => (agent._id || agent.id) !== id));
+    } catch (error) {
+      console.error('Agent silme hatası:', error);
+      alert(`Agent silinemedi: ${(error as Error).message}`);
+    }
   };
+  
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
   
   return (
     <div>
@@ -73,13 +104,13 @@ export default function VoiceAgents() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {agents.map(agent => (
-            <div key={agent.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div key={agent._id || agent.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               <div className="p-6">
                 <h3 className="text-xl font-semibold text-gray-800 mb-2">{agent.name}</h3>
                 <p className="text-gray-600 mb-4">{agent.description}</p>
                 <div className="flex items-center text-sm text-gray-500 mb-4">
                   <span className="mr-4">Ses: {agent.voice}</span>
-                  <span>Oluşturulma: {agent.createdAt.toLocaleDateString('tr-TR')}</span>
+                  <span>Oluşturulma: {new Date(agent.createdAt).toLocaleDateString('tr-TR')}</span>
                 </div>
               </div>
               
@@ -87,14 +118,14 @@ export default function VoiceAgents() {
                 <div className="flex space-x-2">
                   <button 
                     className="p-2 text-gray-600 hover:text-blue-600 rounded hover:bg-gray-100"
-                    onClick={() => router.push(`/dashboard/voice-agents/${agent.id}/edit`)}
+                    onClick={() => router.push(`/dashboard/voice-agents/${agent._id || agent.id}/edit`)}
                     aria-label="Düzenle"
                   >
                     <FiEdit size={18} />
                   </button>
                   <button 
                     className="p-2 text-gray-600 hover:text-red-600 rounded hover:bg-gray-100"
-                    onClick={() => deleteAgent(agent.id)}
+                    onClick={() => deleteAgent(agent._id || agent.id!)}
                     aria-label="Sil"
                   >
                     <FiTrash2 size={18} />
@@ -102,7 +133,7 @@ export default function VoiceAgents() {
                 </div>
                 
                 <Link
-                  href={`/dashboard/voice-agents/${agent.id}/chat`}
+                  href={`/dashboard/voice-agents/${agent._id || agent.id}/chat`}
                   className="flex items-center text-blue-600 hover:text-blue-700 font-medium"
                 >
                   <FiMessageSquare className="mr-2" />

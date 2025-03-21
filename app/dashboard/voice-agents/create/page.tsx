@@ -79,18 +79,37 @@ export default function CreateVoiceAgent() {
     return Object.keys(newErrors).length === 0;
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validate()) {
       return;
     }
     
-    // TODO: API ile veri kaydı yapılacak
-    console.log('Kaydedilen Voice Agent:', formData);
-    
-    // Başarılı kayıt sonrası agent'lar sayfasına yönlendirme
-    router.push('/dashboard/voice-agents');
+    try {
+      // API'ye POST isteği gönder
+      const response = await fetch('/api/voice-agents', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Voice Agent oluşturulurken bir hata oluştu');
+      }
+      
+      const createdAgent = await response.json();
+      console.log('Oluşturulan Voice Agent:', createdAgent);
+      
+      // Başarılı kayıt sonrası agent'lar sayfasına yönlendirme
+      router.push('/dashboard/voice-agents');
+    } catch (error) {
+      console.error('Kayıt hatası:', error);
+      alert(`Voice Agent oluşturulamadı: ${(error as Error).message}`);
+    }
   };
   
   // Sesi test etme fonksiyonu

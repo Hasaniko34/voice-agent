@@ -53,33 +53,35 @@ export default function EditVoiceAgent() {
   
   // Agent verilerini yükleme
   useEffect(() => {
-    // Backend API entegrasyonu için:
-    // fetch(`/api/voice-agents?id=${agentId}`)
-    //   .then(res => res.json())
-    //   .then(data => {
-    //     setFormData(data);
-    //     setIsLoading(false);
-    //   })
-    //   .catch(err => {
-    //     console.error('Agent yüklenirken hata:', err);
-    //     router.push('/dashboard/voice-agents');
-    //   });
+    const fetchAgent = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`/api/voice-agents?id=${agentId}`);
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Agent yüklenirken bir hata oluştu');
+        }
+        
+        const agent = await response.json();
+        
+        setFormData({
+          id: agent._id || agent.id,
+          name: agent.name,
+          description: agent.description,
+          prompt: agent.prompt,
+          voice: agent.voice,
+        });
+        
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Agent yüklenirken hata:', error);
+        alert(`Agent yüklenemedi: ${(error as Error).message}`);
+        router.push('/dashboard/voice-agents');
+      }
+    };
     
-    // Şimdilik demo verilerinden yükle
-    const agent = demoAgents.find(a => a.id === agentId);
-    if (agent) {
-      setFormData({
-        id: agent.id,
-        name: agent.name,
-        description: agent.description,
-        prompt: agent.prompt,
-        voice: agent.voice,
-      });
-      setIsLoading(false);
-    } else {
-      // Agent bulunamazsa listeye geri dön
-      router.push('/dashboard/voice-agents');
-    }
+    fetchAgent();
   }, [agentId, router]);
   
   // OpenAI API anahtarını al
@@ -133,33 +135,36 @@ export default function EditVoiceAgent() {
     return Object.keys(newErrors).length === 0;
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validate()) {
       return;
     }
     
-    // API çağrısı eklenecek
-    // fetch('/api/voice-agents', {
-    //   method: 'PUT',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(formData)
-    // })
-    //   .then(response => response.json())
-    //   .then(data => {
-    //     console.log('Güncellendi:', data);
-    //     router.push('/dashboard/voice-agents');
-    //   })
-    //   .catch(error => {
-    //     console.error('Güncelleme hatası:', error);
-    //   });
-    
-    // Şimdilik sadece konsola yazdır
-    console.log('Güncellenen Voice Agent:', formData);
-    
-    // Başarılı kayıt sonrası agent'lar sayfasına yönlendirme
-    router.push('/dashboard/voice-agents');
+    try {
+      const response = await fetch('/api/voice-agents', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Voice Agent güncellenirken bir hata oluştu');
+      }
+      
+      const updatedAgent = await response.json();
+      console.log('Güncellenen Voice Agent:', updatedAgent);
+      
+      // Başarılı güncelleme sonrası agent'lar sayfasına yönlendirme
+      router.push('/dashboard/voice-agents');
+    } catch (error) {
+      console.error('Güncelleme hatası:', error);
+      alert(`Voice Agent güncellenemedi: ${(error as Error).message}`);
+    }
   };
   
   // Sesi test etme fonksiyonu

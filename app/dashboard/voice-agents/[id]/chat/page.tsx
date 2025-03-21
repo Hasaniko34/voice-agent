@@ -37,18 +37,34 @@ export default function VoiceAgentChat() {
   const agentId = params.id as string;
   
   // Voice Agent'ı bulma
-  const [agent, setAgent] = useState(() => {
-    const found = demoAgents.find(a => a.id === agentId);
-    if (!found) {
-      // Router burada etkin olmadığından, useEffect içinde yönlendireceğiz
-      return null;
-    }
-    return found;
-  });
+  const [agent, setAgent] = useState<any>(null);
+  
+  // Agent verilerini yükleme
+  useEffect(() => {
+    const fetchAgent = async () => {
+      try {
+        const response = await fetch(`/api/voice-agents?id=${agentId}`);
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Agent yüklenirken bir hata oluştu');
+        }
+        
+        const agentData = await response.json();
+        setAgent(agentData);
+      } catch (error) {
+        console.error('Agent yüklenirken hata:', error);
+        alert(`Agent yüklenemedi: ${(error as Error).message}`);
+        router.push('/dashboard/voice-agents');
+      }
+    };
+    
+    fetchAgent();
+  }, [agentId, router]);
   
   useEffect(() => {
     if (!agent) {
-      router.push('/dashboard/voice-agents');
+      return;
     }
   }, [agent, router]);
   
