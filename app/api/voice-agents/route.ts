@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import VoiceAgent from '@/models/VoiceAgent';
+import { isValidObjectId } from 'mongoose';
 
 // Demo verileri - MongoDB çalışınca bu kaldırılacak
 const demoAgents = [
@@ -30,24 +31,43 @@ export async function GET(request: NextRequest) {
     const id = searchParams.get('id');
     
     if (id) {
-      // Belirli bir agent'ı getir
-      const agent = await VoiceAgent.findById(id);
-      
-      if (!agent) {
-        return NextResponse.json({ error: 'Agent bulunamadı' }, { status: 404 });
+      // ID bir MongoDB ObjectId mi kontrol et
+      if (isValidObjectId(id)) {
+        // MongoDB'den agent'ı getirmeyi dene
+        console.log(`Geçerli ObjectId: ${id}, MongoDB'den aranıyor...`);
+        const agent = await VoiceAgent.findById(id);
+        
+        if (agent) {
+          console.log('MongoDB agent bulundu:', agent.name);
+          return NextResponse.json(agent);
+        }
       }
       
-      return NextResponse.json(agent);
+      // MongoDB'de bulunamadı veya geçerli bir ObjectId değil
+      console.log(`Agent MongoDB'de bulunamadı veya geçersiz ObjectId, demo verilerde aranıyor: ${id}`);
+      
+      // Demo verilerinden arama yap
+      const demoAgent = demoAgents.find(a => a.id === id);
+      
+      if (demoAgent) {
+        console.log('Demo agent bulundu:', demoAgent.name);
+        return NextResponse.json(demoAgent);
+      }
+      
+      return NextResponse.json({ error: 'Agent bulunamadı' }, { status: 404 });
     }
     
     // Tüm agent'ları getir
+    console.log('Tüm agent\'lar için MongoDB sorgusu yapılıyor...');
     const agents = await VoiceAgent.find().sort({ createdAt: -1 });
     
     // Eğer hiç agent yoksa demo verileri kullan
     if (agents.length === 0) {
+      console.log('MongoDB\'de agent bulunamadı, demo veriler kullanılıyor');
       return NextResponse.json(demoAgents);
     }
     
+    console.log(`${agents.length} agent MongoDB'den alındı`);
     return NextResponse.json(agents);
   } catch (error) {
     console.error('Voice Agent getirme hatası:', error);
@@ -72,6 +92,7 @@ export async function POST(request: NextRequest) {
     
     // Yeni agent oluştur
     const agent = await VoiceAgent.create(body);
+    console.log('Yeni agent oluşturuldu:', agent.name);
     
     return NextResponse.json(agent, { status: 201 });
   } catch (error) {
@@ -90,6 +111,11 @@ export async function PUT(request: NextRequest) {
     // ID kontrolü
     if (!body.id) {
       return NextResponse.json({ error: 'ID gereklidir' }, { status: 400 });
+    }
+    
+    // ID bir MongoDB ObjectId mi kontrol et
+    if (!isValidObjectId(body.id)) {
+      return NextResponse.json({ error: 'Geçersiz ID formatı' }, { status: 400 });
     }
     
     // Agent'ın var olup olmadığını kontrol et
@@ -112,6 +138,7 @@ export async function PUT(request: NextRequest) {
       { new: true, runValidators: true }
     );
     
+    console.log('Agent güncellendi:', updatedAgent?.name);
     return NextResponse.json(updatedAgent);
   } catch (error) {
     console.error('Voice Agent güncelleme hatası:', error);
@@ -131,6 +158,11 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'ID gereklidir' }, { status: 400 });
     }
     
+    // ID bir MongoDB ObjectId mi kontrol et
+    if (!isValidObjectId(id)) {
+      return NextResponse.json({ error: 'Geçersiz ID formatı' }, { status: 400 });
+    }
+    
     // Agent'ın var olup olmadığını kontrol et
     const existingAgent = await VoiceAgent.findById(id);
     
@@ -140,6 +172,7 @@ export async function DELETE(request: NextRequest) {
     
     // Agent'ı sil
     await VoiceAgent.findByIdAndDelete(id);
+    console.log('Agent silindi:', id);
     
     return NextResponse.json({ message: 'Voice Agent başarıyla silindi' });
   } catch (error) {

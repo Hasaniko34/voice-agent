@@ -56,6 +56,7 @@ export default function EditVoiceAgent() {
     const fetchAgent = async () => {
       try {
         setIsLoading(true);
+        console.log(`Edit sayfası - Agent ID: ${agentId} için veri getiriliyor...`);
         const response = await fetch(`/api/voice-agents?id=${agentId}`);
         
         if (!response.ok) {
@@ -64,9 +65,13 @@ export default function EditVoiceAgent() {
         }
         
         const agent = await response.json();
+        console.log('Edit sayfası - Agent verisi başarıyla alındı:', agent.name);
+        
+        // MongoDB'den gelen yanıtta _id olabilir, uyumluluk için id alanını da belirle
+        const agentDbId = agent._id || agent.id;
         
         setFormData({
-          id: agent._id || agent.id,
+          id: agentDbId,
           name: agent.name,
           description: agent.description,
           prompt: agent.prompt,

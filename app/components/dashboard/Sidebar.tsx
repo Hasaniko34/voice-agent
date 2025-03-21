@@ -8,6 +8,7 @@ import {
   FiHome, 
   FiMic, 
   FiSettings,
+  FiPhone,
   FiChevronLeft,
   FiChevronRight 
 } from 'react-icons/fi';
@@ -34,6 +35,11 @@ export default function Sidebar({ isSidebarCollapsed, setSidebarCollapsed }: Sid
       path: '/dashboard/voice-agents',
       name: 'Voice Agents',
       icon: FiMic
+    },
+    {
+      path: '/dashboard/call',
+      name: 'Telefon Ara',
+      icon: FiPhone
     },
     {
       path: '/dashboard/settings',

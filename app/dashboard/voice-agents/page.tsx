@@ -45,6 +45,11 @@ export default function VoiceAgents() {
   
   // Agent silme işlevi
   const deleteAgent = async (id: string) => {
+    if (!id) {
+      alert('Agent ID bulunamadı');
+      return;
+    }
+    
     if (!confirm('Bu Voice Agent\'ı silmek istediğinizden emin misiniz?')) {
       return;
     }
@@ -60,7 +65,10 @@ export default function VoiceAgents() {
       }
       
       // UI'dan kaldır
-      setAgents(agents.filter(agent => (agent._id || agent.id) !== id));
+      setAgents(agents.filter(agent => {
+        const agentId = agent._id || agent.id;
+        return agentId !== id;
+      }));
     } catch (error) {
       console.error('Agent silme hatası:', error);
       alert(`Agent silinemedi: ${(error as Error).message}`);
@@ -103,45 +111,50 @@ export default function VoiceAgents() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {agents.map(agent => (
-            <div key={agent._id || agent.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <div className="p-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">{agent.name}</h3>
-                <p className="text-gray-600 mb-4">{agent.description}</p>
-                <div className="flex items-center text-sm text-gray-500 mb-4">
-                  <span className="mr-4">Ses: {agent.voice}</span>
-                  <span>Oluşturulma: {new Date(agent.createdAt).toLocaleDateString('tr-TR')}</span>
-                </div>
-              </div>
-              
-              <div className="border-t border-gray-200 bg-gray-50 px-6 py-3 flex justify-between">
-                <div className="flex space-x-2">
-                  <button 
-                    className="p-2 text-gray-600 hover:text-blue-600 rounded hover:bg-gray-100"
-                    onClick={() => router.push(`/dashboard/voice-agents/${agent._id || agent.id}/edit`)}
-                    aria-label="Düzenle"
-                  >
-                    <FiEdit size={18} />
-                  </button>
-                  <button 
-                    className="p-2 text-gray-600 hover:text-red-600 rounded hover:bg-gray-100"
-                    onClick={() => deleteAgent(agent._id || agent.id!)}
-                    aria-label="Sil"
-                  >
-                    <FiTrash2 size={18} />
-                  </button>
+          {agents.map(agent => {
+            // MongoDB veya demo verilerden gelen agent ID'sini belirle
+            const agentId = agent._id || agent.id || '';
+            
+            return (
+              <div key={agentId} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div className="p-6">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-2">{agent.name}</h3>
+                  <p className="text-gray-600 mb-4">{agent.description}</p>
+                  <div className="flex items-center text-sm text-gray-500 mb-4">
+                    <span className="mr-4">Ses: {agent.voice}</span>
+                    <span>Oluşturulma: {new Date(agent.createdAt).toLocaleDateString('tr-TR')}</span>
+                  </div>
                 </div>
                 
-                <Link
-                  href={`/dashboard/voice-agents/${agent._id || agent.id}/chat`}
-                  className="flex items-center text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  <FiMessageSquare className="mr-2" />
-                  Konuş
-                </Link>
+                <div className="border-t border-gray-200 bg-gray-50 px-6 py-3 flex justify-between">
+                  <div className="flex space-x-2">
+                    <button 
+                      className="p-2 text-gray-600 hover:text-blue-600 rounded hover:bg-gray-100"
+                      onClick={() => router.push(`/dashboard/voice-agents/${agentId}/edit`)}
+                      aria-label="Düzenle"
+                    >
+                      <FiEdit size={18} />
+                    </button>
+                    <button 
+                      className="p-2 text-gray-600 hover:text-red-600 rounded hover:bg-gray-100"
+                      onClick={() => deleteAgent(agentId)}
+                      aria-label="Sil"
+                    >
+                      <FiTrash2 size={18} />
+                    </button>
+                  </div>
+                  
+                  <Link
+                    href={`/dashboard/voice-agents/${agentId}/chat`}
+                    className="flex items-center text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    <FiMessageSquare className="mr-2" />
+                    Konuş
+                  </Link>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

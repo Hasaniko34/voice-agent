@@ -43,6 +43,7 @@ export default function VoiceAgentChat() {
   useEffect(() => {
     const fetchAgent = async () => {
       try {
+        console.log(`Agent ID: ${agentId} için veri getiriliyor...`);
         const response = await fetch(`/api/voice-agents?id=${agentId}`);
         
         if (!response.ok) {
@@ -51,6 +52,13 @@ export default function VoiceAgentChat() {
         }
         
         const agentData = await response.json();
+        console.log('Agent verisi başarıyla alındı:', agentData.name);
+        
+        // MongoDB'den gelen yanıtta _id olabilir, uyumluluk için id alanını da ekle
+        if (agentData._id && !agentData.id) {
+          agentData.id = agentData._id;
+        }
+        
         setAgent(agentData);
       } catch (error) {
         console.error('Agent yüklenirken hata:', error);
