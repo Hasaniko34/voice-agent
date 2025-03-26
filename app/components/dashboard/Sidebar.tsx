@@ -1,8 +1,9 @@
 'use client'
 
+import React from 'react';
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { 
   FiMenu, 
   FiHome, 
@@ -10,7 +11,11 @@ import {
   FiSettings,
   FiPhone,
   FiChevronLeft,
-  FiChevronRight 
+  FiChevronRight,
+  FiPlus,
+  FiClock,
+  FiList,
+  FiLogOut
 } from 'react-icons/fi';
 
 interface SidebarProps {
@@ -20,9 +25,19 @@ interface SidebarProps {
 
 export default function Sidebar({ isSidebarCollapsed, setSidebarCollapsed }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
 
   const toggleSidebar = () => {
     setSidebarCollapsed(!isSidebarCollapsed);
+  };
+
+  const handleLogout = () => {
+    // LocalStorage'dan token ve user bilgilerini temizle
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    
+    // Ana sayfaya yönlendir
+    router.push('/');
   };
 
   const menuItems = [
@@ -33,13 +48,23 @@ export default function Sidebar({ isSidebarCollapsed, setSidebarCollapsed }: Sid
     },
     {
       path: '/dashboard/voice-agents',
-      name: 'Voice Agents',
-      icon: FiMic
+      name: 'Ses Asistanları',
+      icon: FiHome,
     },
     {
       path: '/dashboard/call',
       name: 'Telefon Ara',
-      icon: FiPhone
+      icon: FiPhone,
+    },
+    {
+      path: '/dashboard/call-history',
+      name: 'Geçmiş Aramalar',
+      icon: FiClock,
+    },
+    {
+      path: '/dashboard/planned-calls',
+      name: 'Planlı Aramalar',
+      icon: FiList,
     },
     {
       path: '/dashboard/settings',
@@ -67,7 +92,7 @@ export default function Sidebar({ isSidebarCollapsed, setSidebarCollapsed }: Sid
         </button>
       </div>
 
-      <nav className="px-2 py-4">
+      <nav className="px-2 py-4 flex flex-col h-[calc(100%-4rem)]">
         <ul className="space-y-2">
           {menuItems.map((item) => {
             const isActive = pathname === item.path;
@@ -89,6 +114,17 @@ export default function Sidebar({ isSidebarCollapsed, setSidebarCollapsed }: Sid
             );
           })}
         </ul>
+        
+        {/* Çıkış yap butonu */}
+        <div className="mt-auto mb-6">
+          <button
+            onClick={handleLogout}
+            className="flex items-center w-full p-2 rounded-md text-red-600 hover:bg-red-50 transition-colors duration-200"
+          >
+            <FiLogOut className={`${isSidebarCollapsed ? 'mx-auto' : 'mr-3'}`} />
+            {!isSidebarCollapsed && <span>Çıkış Yap</span>}
+          </button>
+        </div>
       </nav>
     </aside>
   );

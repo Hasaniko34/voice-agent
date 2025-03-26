@@ -274,7 +274,7 @@ export default function EditVoiceAgent() {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 ${
                   errors.name ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Örn: Türkçe Asistan"
@@ -292,7 +292,7 @@ export default function EditVoiceAgent() {
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 ${
                   errors.description ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Bu agent ne yapacak? Kısa bir açıklama"
@@ -310,7 +310,7 @@ export default function EditVoiceAgent() {
                 value={formData.prompt}
                 onChange={handleChange}
                 rows={5}
-                className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 ${
                   errors.prompt ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Agent'ın nasıl davranacağını anlatan prompt"
