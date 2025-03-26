@@ -1,7 +1,11 @@
 'use client'
 
 import { useState } from 'react';
-import { FiCalendar, FiClock, FiPhone, FiPlus, FiTrash2, FiEdit, FiUsers, FiRepeat, FiX, FiCheck, FiSearch, FiUpload, FiDownload, FiMic, FiFile } from 'react-icons/fi';
+import { FiCalendar, FiClock, FiPhone, FiPlus, FiTrash2, FiEdit, FiUsers, FiRepeat, FiX, FiCheck, FiSearch, FiUpload, FiDownload, FiMic, FiFile, FiInbox } from 'react-icons/fi';
+import EmptyState from '@/app/components/ui/EmptyState';
+import Modal from '@/app/components/ui/Modal';
+import Button from '@/app/components/ui/Button';
+import Input from '@/app/components/ui/Input';
 
 // Demo voice agent verileri
 const demoVoiceAgents = [
@@ -176,6 +180,44 @@ export default function PlannedCallsPage() {
     return agent ? agent.name : 'Ses Asistanı';
   };
   
+  // Modal footer komponentleri
+  const createCallModalFooter = (
+    <div className="flex justify-end space-x-3">
+      <Button 
+        variant="outline" 
+        onClick={() => setIsModalOpen(false)}
+      >
+        İptal
+      </Button>
+      <Button 
+        type="submit"
+        icon={FiCheck}
+      >
+        Oluştur
+      </Button>
+    </div>
+  );
+  
+  const fileUploadModalFooter = (
+    <div className="flex justify-end space-x-3">
+      <Button 
+        variant="outline" 
+        onClick={() => setIsFileUploadModalOpen(false)}
+      >
+        İptal
+      </Button>
+      <Button 
+        disabled={!selectedFile}
+        icon={FiCheck}
+        onClick={() => {
+          setIsFileUploadModalOpen(false);
+        }}
+      >
+        Kişileri Aktar
+      </Button>
+    </div>
+  );
+  
   return (
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-8 text-gray-900">Planlı Aramalar</h1>
@@ -183,16 +225,13 @@ export default function PlannedCallsPage() {
       {/* Arama ve Filtreleme */}
       <div className="flex flex-col md:flex-row justify-between gap-4 bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
         <div className="flex flex-1 max-w-md">
-          <div className="relative w-full">
-            <input
-              type="text"
-              placeholder="Planlı arama ara..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <FiSearch className="absolute left-3 top-3 text-gray-400" />
-          </div>
+          <Input
+            placeholder="Planlı arama ara..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            leftIcon={FiSearch}
+            className="w-full"
+          />
         </div>
         
         <div className="flex items-center gap-4">
@@ -207,25 +246,32 @@ export default function PlannedCallsPage() {
             <option value="completed">Tamamlandı</option>
           </select>
           
-          <button
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          <Button 
+            icon={FiPlus}
             onClick={() => setIsModalOpen(true)}
           >
-            <FiPlus className="mr-2" />
             Yeni Planlı Arama
-          </button>
+          </Button>
         </div>
       </div>
       
       {/* Planlı Aramalar Listesi */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {filteredCalls.length === 0 ? (
-          <div className="col-span-2 bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center text-gray-600">
-            <p>Görüntülenecek planlı arama bulunamadı.</p>
+          <div className="col-span-2">
+            <EmptyState
+              icon={FiInbox}
+              title="Planlı Arama Bulunamadı"
+              description="Filtreyi değiştirmeyi veya yeni bir planlı arama oluşturmayı deneyebilirsiniz."
+              action={{
+                label: "Yeni Planlı Arama",
+                onClick: () => setIsModalOpen(true)
+              }}
+            />
           </div>
         ) : (
           filteredCalls.map((call) => (
-            <div key={call.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div key={call.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
               <div className="p-6">
                 <div className="flex justify-between items-start">
                   <div>
@@ -278,7 +324,7 @@ export default function PlannedCallsPage() {
                         </span>
                       </div>
                     </div>
-                    <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-blue-200">
+                    <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-blue-100">
                       <div 
                         style={{ width: `${(call.completedCount / call.targetCount) * 100}%` }} 
                         className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500"
@@ -290,36 +336,42 @@ export default function PlannedCallsPage() {
               </div>
               
               <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 flex justify-between">
-                <button
-                  className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={FiUsers}
                   onClick={() => {/* Kişileri görüntüle */}}
                 >
-                  <FiUsers className="mr-1" /> Kişileri Görüntüle
-                </button>
+                  Kişileri Görüntüle
+                </Button>
                 
                 <div className="flex space-x-2">
-                  <button
-                    className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    icon={FiEdit}
                     onClick={() => {/* Düzenle */}}
-                  >
-                    <FiEdit className="mr-1" />
-                  </button>
+                    aria-label="Düzenle"
+                  />
                   
                   {call.status !== 'completed' && (
-                    <button
-                      className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                    <Button
+                      variant="success"
+                      size="sm"
+                      icon={FiPhone}
                       onClick={() => {/* Aramaları başlat */}}
                     >
-                      <FiPhone className="mr-1" /> {call.status === 'in_progress' ? 'Devam Et' : 'Başlat'}
-                    </button>
+                      {call.status === 'in_progress' ? 'Devam Et' : 'Başlat'}
+                    </Button>
                   )}
                   
-                  <button
-                    className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  <Button
+                    variant="danger"
+                    size="icon"
+                    icon={FiTrash2}
                     onClick={() => {/* Sil */}}
-                  >
-                    <FiTrash2 className="mr-1" />
-                  </button>
+                    aria-label="Sil"
+                  />
                 </div>
               </div>
             </div>
@@ -328,295 +380,230 @@ export default function PlannedCallsPage() {
       </div>
       
       {/* Yeni Planlı Arama Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center p-6 border-b border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900">Yeni Planlı Arama Oluştur</h3>
-              <button
-                className="text-gray-500 hover:text-gray-700"
-                onClick={() => setIsModalOpen(false)}
-              >
-                <FiX size={24} />
-              </button>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Yeni Planlı Arama Oluştur"
+        size="lg"
+        footer={createCallModalFooter}
+      >
+        <form>
+          <div className="space-y-6">
+            <Input
+              label="Arama Adı"
+              id="name"
+              required
+              placeholder="Örn: Müşteri Memnuniyet Anketi"
+            />
+            
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-gray-900 mb-1">
+                Açıklama
+              </label>
+              <textarea
+                id="description"
+                rows={3}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
+                placeholder="Bu planlı aramanın amacı ve detayları..."
+              ></textarea>
             </div>
             
-            <div className="p-6">
-              <form>
-                <div className="space-y-6">
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                      Arama Adı
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
-                      placeholder="Örn: Müşteri Memnuniyet Anketi"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                      Açıklama
-                    </label>
-                    <textarea
-                      id="description"
-                      rows={3}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
-                      placeholder="Bu planlı aramanın amacı ve detayları..."
-                    ></textarea>
-                  </div>
-                  
-                  {/* Voice Agent Seçimi */}
-                  <div>
-                    <label htmlFor="voiceAgent" className="block text-sm font-medium text-gray-700">
-                      Ses Asistanı
-                    </label>
-                    <select
-                      id="voiceAgent"
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
+            {/* Voice Agent Seçimi */}
+            <div>
+              <label htmlFor="voiceAgent" className="block text-sm font-medium text-gray-900 mb-1">
+                Ses Asistanı
+              </label>
+              <select
+                id="voiceAgent"
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
+              >
+                <option value="">Ses Asistanı Seçin</option>
+                {demoVoiceAgents.map(agent => (
+                  <option key={agent.id} value={agent.id}>
+                    {agent.name} - {agent.description}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Input
+                label="Tarih"
+                id="date"
+                type="date"
+                required
+              />
+              
+              <Input
+                label="Saat"
+                id="time"
+                type="time"
+                required
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="frequency" className="block text-sm font-medium text-gray-900 mb-1">
+                Tekrarlama
+              </label>
+              <select
+                id="frequency"
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
+              >
+                <option value="once">Bir Kez</option>
+                <option value="daily">Günlük</option>
+                <option value="weekly">Haftalık</option>
+                <option value="monthly">Aylık</option>
+                <option value="yearly">Yıllık</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-900 mb-2">
+                Kişiler
+              </label>
+              <div className="border border-gray-300 rounded-md p-4 h-48 overflow-y-auto">
+                <div className="flex justify-between items-center mb-4">
+                  <Input
+                    placeholder="Kişi ara..."
+                    leftIcon={FiSearch}
+                    className="flex-1 max-w-sm"
+                  />
+                  <div className="flex ml-3 gap-2">
+                    <Button
+                      size="sm"
+                      icon={FiPlus}
+                      onClick={() => {/* Kişi ekle */}}
                     >
-                      <option value="">Ses Asistanı Seçin</option>
-                      {demoVoiceAgents.map(agent => (
-                        <option key={agent.id} value={agent.id}>
-                          {agent.name} - {agent.description}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label htmlFor="date" className="block text-sm font-medium text-gray-700">
-                        Tarih
-                      </label>
-                      <input
-                        type="date"
-                        id="date"
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="time" className="block text-sm font-medium text-gray-700">
-                        Saat
-                      </label>
-                      <input
-                        type="time"
-                        id="time"
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="frequency" className="block text-sm font-medium text-gray-700">
-                      Tekrarlama
-                    </label>
-                    <select
-                      id="frequency"
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
+                      Kişi Ekle
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      icon={FiUpload}
+                      onClick={() => setIsFileUploadModalOpen(true)}
                     >
-                      <option value="once">Bir Kez</option>
-                      <option value="daily">Günlük</option>
-                      <option value="weekly">Haftalık</option>
-                      <option value="monthly">Aylık</option>
-                      <option value="yearly">Yıllık</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Kişiler
-                    </label>
-                    <div className="border border-gray-300 rounded-md p-4 h-48 overflow-y-auto">
-                      <div className="flex justify-between items-center mb-4">
-                        <div className="relative flex-1 max-w-sm">
-                          <input
-                            type="text"
-                            placeholder="Kişi ara..."
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                          />
-                          <FiSearch className="absolute left-3 top-3 text-gray-400" />
-                        </div>
-                        <div className="flex ml-3 gap-2">
-                          <button
-                            type="button"
-                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                            onClick={() => {/* Kişi ekle */}}
-                          >
-                            <FiPlus className="mr-1" /> Kişi Ekle
-                          </button>
-                          <button
-                            type="button"
-                            className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                            onClick={() => setIsFileUploadModalOpen(true)}
-                          >
-                            <FiUpload className="mr-1" /> Dosyadan Aktar
-                          </button>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
-                          <div>
-                            <p className="font-medium text-gray-800">Ahmet Yılmaz</p>
-                            <p className="text-sm text-gray-700">+90 555 123 4567</p>
-                          </div>
-                          <button className="text-red-500 hover:text-red-700">
-                            <FiX />
-                          </button>
-                        </div>
-                        <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
-                          <div>
-                            <p className="font-medium text-gray-800">Ayşe Demir</p>
-                            <p className="text-sm text-gray-700">+90 532 987 6543</p>
-                          </div>
-                          <button className="text-red-500 hover:text-red-700">
-                            <FiX />
-                          </button>
-                        </div>
-                        <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
-                          <div>
-                            <p className="font-medium text-gray-800">Mehmet Kaya</p>
-                            <p className="text-sm text-gray-700">+90 541 456 7890</p>
-                          </div>
-                          <button className="text-red-500 hover:text-red-700">
-                            <FiX />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </form>
-            </div>
-            
-            <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
-              <button
-                type="button"
-                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                onClick={() => setIsModalOpen(false)}
-              >
-                İptal
-              </button>
-              <button
-                type="submit"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                onClick={() => {
-                  // Planlı arama oluşturma işlemleri
-                  setIsModalOpen(false);
-                }}
-              >
-                <FiCheck className="mr-2" /> Oluştur
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Dosya Yükleme Modal */}
-      {isFileUploadModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="flex justify-between items-center p-6 border-b border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900">Kişileri Dosyadan Aktar</h3>
-              <button
-                className="text-gray-500 hover:text-gray-700"
-                onClick={() => setIsFileUploadModalOpen(false)}
-              >
-                <FiX size={24} />
-              </button>
-            </div>
-            
-            <div className="p-6">
-              <div className="space-y-6">
-                <div>
-                  <p className="text-sm text-gray-700 mb-4">
-                    Excel (.xlsx) veya CSV (.csv) formatında bir dosya yükleyin. Dosyanız en az &quot;isim&quot; ve &quot;telefon&quot; sütunları içermelidir.
-                  </p>
-                  
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                    <input
-                      type="file"
-                      id="fileUpload"
-                      className="hidden"
-                      accept=".csv,.xlsx,.xls"
-                      onChange={handleFileChange}
-                    />
-                    
-                    {!selectedFile ? (
-                      <div>
-                        <FiUpload className="mx-auto h-12 w-12 text-gray-400" />
-                        <p className="mt-2 text-sm text-gray-700">
-                          Dosya yüklemek için tıklayın veya sürükleyip bırakın
-                        </p>
-                        <label
-                          htmlFor="fileUpload"
-                          className="mt-4 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
-                        >
-                          Dosya Seç
-                        </label>
-                      </div>
-                    ) : (
-                      <div>
-                        <div className="flex items-center justify-center">
-                          <FiFile className="h-8 w-8 text-blue-500 mr-2" />
-                          <span className="text-gray-900 font-medium">{selectedFile.name}</span>
-                        </div>
-                        <button
-                          type="button"
-                          className="mt-4 inline-flex items-center px-3 py-1 border border-gray-300 rounded-md shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                          onClick={() => setSelectedFile(null)}
-                        >
-                          <FiX className="mr-1" /> Kaldır
-                        </button>
-                      </div>
-                    )}
+                      Dosyadan Aktar
+                    </Button>
                   </div>
                 </div>
                 
-                <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Şablon</h4>
-                  <p className="text-sm text-gray-600 mb-2">
-                    Doğru formatta bir şablon indirmek için:
-                  </p>
-                  <button
-                    type="button"
-                    className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    onClick={() => {/* Şablon indir */}}
-                  >
-                    <FiDownload className="mr-1" /> Excel Şablonu İndir
-                  </button>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
+                    <div>
+                      <p className="font-medium text-gray-800">Ahmet Yılmaz</p>
+                      <p className="text-sm text-gray-700">+90 555 123 4567</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      icon={FiX}
+                      aria-label="Kaldır"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
+                    <div>
+                      <p className="font-medium text-gray-800">Ayşe Demir</p>
+                      <p className="text-sm text-gray-700">+90 532 987 6543</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      icon={FiX}
+                      aria-label="Kaldır"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
+                    <div>
+                      <p className="font-medium text-gray-800">Mehmet Kaya</p>
+                      <p className="text-sm text-gray-700">+90 541 456 7890</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      icon={FiX}
+                      aria-label="Kaldır"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
+          </div>
+        </form>
+      </Modal>
+      
+      {/* Dosya Yükleme Modal */}
+      <Modal
+        isOpen={isFileUploadModalOpen}
+        onClose={() => setIsFileUploadModalOpen(false)}
+        title="Kişileri Dosyadan Aktar"
+        size="md"
+        footer={fileUploadModalFooter}
+      >
+        <div className="space-y-6">
+          <div>
+            <p className="text-sm text-gray-700 mb-4">
+              Excel (.xlsx) veya CSV (.csv) formatında bir dosya yükleyin. Dosyanız en az &quot;isim&quot; ve &quot;telefon&quot; sütunları içermelidir.
+            </p>
             
-            <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
-              <button
-                type="button"
-                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                onClick={() => setIsFileUploadModalOpen(false)}
-              >
-                İptal
-              </button>
-              <button
-                type="button"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!selectedFile}
-                onClick={() => {
-                  // Dosya işleme ve kişileri aktarma
-                  setIsFileUploadModalOpen(false);
-                  // Başarılı mesajı göster
-                }}
-              >
-                <FiCheck className="mr-2" /> Kişileri Aktar
-              </button>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+              <input
+                type="file"
+                id="fileUpload"
+                className="hidden"
+                accept=".csv,.xlsx,.xls"
+                onChange={handleFileChange}
+              />
+              
+              {!selectedFile ? (
+                <div>
+                  <FiUpload className="mx-auto h-12 w-12 text-gray-400" />
+                  <p className="mt-2 text-sm text-gray-700">
+                    Dosya yüklemek için tıklayın veya sürükleyip bırakın
+                  </p>
+                  <label
+                    htmlFor="fileUpload"
+                    className="mt-4 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
+                  >
+                    Dosya Seç
+                  </label>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-center justify-center">
+                    <FiFile className="h-8 w-8 text-blue-500 mr-2" />
+                    <span className="text-gray-900 font-medium">{selectedFile.name}</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={FiX}
+                    className="mt-4"
+                    onClick={() => setSelectedFile(null)}
+                  >
+                    Kaldır
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
+          
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Şablon</h4>
+            <p className="text-sm text-gray-600 mb-2">
+              Doğru formatta bir şablon indirmek için:
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={FiDownload}
+              onClick={() => {/* Şablon indir */}}
+            >
+              Excel Şablonu İndir
+            </Button>
+          </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 } 

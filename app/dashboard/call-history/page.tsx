@@ -1,8 +1,11 @@
 'use client'
 
 import { useState } from 'react';
-import { FiPhone, FiInfo, FiArrowRight, FiCalendar, FiClock, FiSearch, FiFilter } from 'react-icons/fi';
+import { FiPhone, FiInfo, FiArrowRight, FiCalendar, FiClock, FiSearch, FiFilter, FiInbox } from 'react-icons/fi';
 import Link from 'next/link';
+import EmptyState from '@/app/components/ui/EmptyState';
+import Button from '@/app/components/ui/Button';
+import Input from '@/app/components/ui/Input';
 
 // Demo arama geçmişi verileri
 const demoCallHistory = [
@@ -113,16 +116,13 @@ export default function CallHistoryPage() {
         <div className="flex flex-col md:flex-row gap-4">
           {/* Arama Kutusu */}
           <div className="flex-1">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="İsim veya numara ara..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <FiSearch className="absolute left-3 top-3 text-gray-400" />
-            </div>
+            <Input
+              placeholder="İsim veya numara ara..."
+              leftIcon={FiSearch}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full"
+            />
           </div>
           
           {/* Filtreler */}
@@ -163,8 +163,12 @@ export default function CallHistoryPage() {
             <h2 className="p-4 border-b border-gray-200 font-semibold text-lg text-gray-900">Aramalar</h2>
             
             {filteredCalls.length === 0 ? (
-              <div className="p-6 text-center text-gray-600">
-                Gösterilecek arama kaydı bulunamadı
+              <div className="p-4">
+                <EmptyState
+                  icon={FiInbox}
+                  title="Arama Kaydı Bulunamadı"
+                  description="Filtreyi değiştirmeyi veya yeni aramalar yapmayı deneyebilirsiniz."
+                />
               </div>
             ) : (
               <ul className="divide-y divide-gray-200">
@@ -214,10 +218,12 @@ export default function CallHistoryPage() {
         <div className="md:col-span-2">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-[calc(100vh-240px)] overflow-y-auto">
             {!selectedCall ? (
-              <div className="h-full flex flex-col items-center justify-center p-6 text-center text-gray-600">
-                <FiInfo size={48} className="mb-4 text-gray-400" />
-                <h3 className="text-lg font-medium text-gray-800">Arama Detayları</h3>
-                <p className="mt-2 text-gray-700">Detayları görüntülemek için soldan bir arama seçin</p>
+              <div className="h-full flex flex-col items-center justify-center p-6">
+                <EmptyState
+                  icon={FiInfo}
+                  title="Arama Detayları"
+                  description="Detayları görüntülemek için soldan bir arama seçin"
+                />
               </div>
             ) : (
               <>
@@ -258,12 +264,14 @@ export default function CallHistoryPage() {
                               Süre: {call.duration}
                             </div>
                           </div>
-                          <button
-                            className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                          <Button
+                            variant="primary"
+                            icon={FiPhone}
+                            className="mt-4"
                             onClick={() => {}}
                           >
-                            <FiPhone className="mr-2" /> Tekrar Ara
-                          </button>
+                            Tekrar Ara
+                          </Button>
                         </div>
                       </div>
                     </div>
