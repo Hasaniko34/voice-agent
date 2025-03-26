@@ -1,75 +1,72 @@
 'use client'
 
 import { ReactNode } from 'react';
-import { cva, type VariantProps } from 'class-variance-authority';
-
-// Gölge varyantları için sınıf belirleme
-const shadowVariants = cva('', {
-  variants: {
-    elevation: {
-      none: '',
-      xs: 'shadow-sm',
-      sm: 'shadow',
-      md: 'shadow-md',
-      lg: 'shadow-lg',
-      xl: 'shadow-xl',
-      '2xl': 'shadow-2xl',
-    },
-    color: {
-      default: '',
-      primary: 'shadow-primary/20',
-      secondary: 'shadow-gray-200/80',
-      info: 'shadow-blue-200/80',
-      success: 'shadow-green-200/80',
-      warning: 'shadow-yellow-200/80',
-      danger: 'shadow-red-200/80',
-    },
-    rounded: {
-      none: 'rounded-none',
-      sm: 'rounded-sm',
-      md: 'rounded-md',
-      lg: 'rounded-lg',
-      xl: 'rounded-xl',
-      '2xl': 'rounded-2xl',
-      full: 'rounded-full',
-    },
-    hover: {
-      none: '',
-      sm: 'transition-shadow hover:shadow-md',
-      md: 'transition-shadow hover:shadow-lg',
-      lg: 'transition-shadow hover:shadow-xl',
-      xl: 'transition-shadow hover:shadow-2xl',
-    },
-  },
-  defaultVariants: {
-    elevation: 'md',
-    color: 'default',
-    rounded: 'md',
-    hover: 'none',
-  },
-});
 
 // Shadow bileşeni için props tanımı
 export interface ShadowProps
-  extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof shadowVariants> {
+  extends React.HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
   className?: string;
+  elevation?: 'none' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  color?: 'default' | 'primary' | 'secondary' | 'info' | 'success' | 'warning' | 'danger';
+  rounded?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
+  hover?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
 }
 
 // Gerçekçi gölge bileşeni
 export function Shadow({
   children,
-  elevation,
-  color,
-  rounded,
-  hover,
+  elevation = 'md',
+  color = 'default',
+  rounded = 'md',
+  hover = 'none',
   className = '',
   ...props
 }: ShadowProps) {
+  // Gölge varyantları sınıfları
+  const elevationClasses = {
+    none: '',
+    xs: 'shadow-sm',
+    sm: 'shadow',
+    md: 'shadow-md',
+    lg: 'shadow-lg',
+    xl: 'shadow-xl',
+    '2xl': 'shadow-2xl',
+  };
+
+  const colorClasses = {
+    default: '',
+    primary: 'shadow-primary/20',
+    secondary: 'shadow-gray-200/80',
+    info: 'shadow-blue-200/80',
+    success: 'shadow-green-200/80',
+    warning: 'shadow-yellow-200/80',
+    danger: 'shadow-red-200/80',
+  };
+
+  const roundedClasses = {
+    none: 'rounded-none',
+    sm: 'rounded-sm',
+    md: 'rounded-md',
+    lg: 'rounded-lg',
+    xl: 'rounded-xl',
+    '2xl': 'rounded-2xl',
+    full: 'rounded-full',
+  };
+
+  const hoverClasses = {
+    none: '',
+    sm: 'transition-shadow hover:shadow-md',
+    md: 'transition-shadow hover:shadow-lg',
+    lg: 'transition-shadow hover:shadow-xl',
+    xl: 'transition-shadow hover:shadow-2xl',
+  };
+
+  const shadowClass = `${elevationClasses[elevation]} ${colorClasses[color]} ${roundedClasses[rounded]} ${hoverClasses[hover]} ${className}`;
+
   return (
     <div
-      className={`${shadowVariants({ elevation, color, rounded, hover })} ${className}`}
+      className={shadowClass}
       {...props}
     >
       {children}

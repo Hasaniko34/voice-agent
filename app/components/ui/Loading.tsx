@@ -1,126 +1,108 @@
 'use client'
 
-import { HTMLAttributes } from 'react';
-import { motion } from 'framer-motion';
+import React from 'react';
 
-type LoadingVariant = 'spinner' | 'dots' | 'pulse' | 'skeleton';
-type LoadingSize = 'sm' | 'md' | 'lg';
-type LoadingColor = 'primary' | 'secondary' | 'white';
+export type LoadingVariant = 'spinner' | 'dots' | 'pulse' | 'skeleton';
+export type LoadingSize = 'small' | 'medium' | 'large';
+export type LoadingColor = 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info';
 
-export interface LoadingProps extends HTMLAttributes<HTMLDivElement> {
+// Loading Props için tip tanımı
+interface LoadingProps {
   variant?: LoadingVariant;
   size?: LoadingSize;
   color?: LoadingColor;
   text?: string;
   fullPage?: boolean;
-  transparent?: boolean;
+  className?: string;
 }
 
-export default function Loading({
+const Loading: React.FC<LoadingProps> = ({
   variant = 'spinner',
-  size = 'md',
+  size = 'medium',
   color = 'primary',
   text,
   fullPage = false,
-  transparent = false,
   className = '',
-  ...props
-}: LoadingProps) {
-  // Boyut sınıfları
+}) => {
+  // Size değerlerine göre boyutlar
   const sizeClasses = {
-    sm: 'h-4 w-4',
-    md: 'h-8 w-8',
-    lg: 'h-12 w-12',
+    small: 'h-4 w-4',
+    medium: 'h-8 w-8',
+    large: 'h-12 w-12',
   };
 
   // Renk sınıfları
   const colorClasses = {
     primary: 'text-blue-600',
     secondary: 'text-gray-600',
-    white: 'text-white',
+    success: 'text-green-600',
+    danger: 'text-red-600',
+    warning: 'text-yellow-600',
+    info: 'text-cyan-600',
   };
 
-  // Tam sayfa kapsayıcı
+  // Varyasyona göre bileşen render et
+  const renderLoader = () => {
+    switch (variant) {
+      case 'spinner':
+        return (
+          <div className={`animate-spin rounded-full border-t-2 border-b-2 ${colorClasses[color]} ${sizeClasses[size]} ${className}`}></div>
+        );
+      case 'dots':
+        return (
+          <div className={`flex space-x-1 ${className}`}>
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className={`rounded-full ${colorClasses[color]} ${
+                  size === 'small' ? 'h-1.5 w-1.5' : size === 'medium' ? 'h-2.5 w-2.5' : 'h-3.5 w-3.5'
+                } animate-bounce`}
+                style={{ animationDelay: `${i * 0.1}s` }}
+              ></div>
+            ))}
+          </div>
+        );
+      case 'pulse':
+        return (
+          <div
+            className={`${sizeClasses[size]} ${colorClasses[color]} animate-pulse rounded-full ${className}`}
+            style={{
+              background: `currentColor`,
+              animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            }}
+          ></div>
+        );
+      case 'skeleton':
+        return (
+          <div className={`animate-pulse ${className}`}>
+            <div className={`rounded bg-gray-200 ${sizeClasses[size]}`}></div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   if (fullPage) {
     return (
-      <div className={`fixed inset-0 flex items-center justify-center z-50 ${transparent ? 'bg-white/70' : 'bg-white'}`}>
-        <Loading
-          variant={variant}
-          size={size}
-          color={color}
-          text={text}
-        />
+      <div className="fixed inset-0 flex items-center justify-center z-50 bg-white bg-opacity-75">
+        <div className="flex flex-col items-center">
+          {renderLoader()}
+          {text && <p className="mt-4 text-gray-700">{text}</p>}
+        </div>
       </div>
     );
   }
 
-  // İçerik kapsayıcı
-  const containerClasses = text
-    ? 'flex flex-col items-center justify-center space-y-3'
-    : 'flex items-center justify-center';
-
   return (
-    <div className={`${containerClasses} ${className}`} {...props}>
-      {variant === 'spinner' && (
-        <div
-          className={`border-4 rounded-full ${sizeClasses[size]} ${colorClasses[color]} border-t-transparent animate-spin`}
-        />
-      )}
-      
-      {variant === 'dots' && (
-        <div className="flex space-x-2">
-          {[0, 1, 2].map((i) => (
-            <motion.div
-              key={i}
-              className={`rounded-full ${sizeClasses.sm} ${colorClasses[color]} bg-current`}
-              initial={{ opacity: 0.3 }}
-              animate={{ opacity: [0.3, 1, 0.3] }}
-              transition={{ 
-                duration: 1.5, 
-                repeat: Infinity, 
-                delay: i * 0.3,
-                ease: "easeInOut" 
-              }}
-            />
-          ))}
-        </div>
-      )}
-      
-      {variant === 'pulse' && (
-        <motion.div
-          className={`rounded-full ${sizeClasses[size]} ${colorClasses[color]} bg-current`}
-          animate={{ 
-            scale: [1, 1.2, 1],
-            opacity: [0.6, 1, 0.6]
-          }}
-          transition={{ 
-            duration: 1.5, 
-            repeat: Infinity,
-            ease: "easeInOut" 
-          }}
-        />
-      )}
-      
-      {variant === 'skeleton' && (
-        <div className="space-y-2 w-full">
-          {[0, 1, 2].map((i) => (
-            <div 
-              key={i} 
-              className={`h-3 bg-gray-200 rounded-md ${i === 1 ? 'w-3/4' : 'w-full'}`} 
-              style={{ 
-                animation: `pulse 1.5s ease-in-out ${i * 0.3}s infinite`,
-              }}
-            />
-          ))}
-        </div>
-      )}
-      
-      {text && (
-        <span className={`text-sm font-medium ${colorClasses[color]}`}>{text}</span>
-      )}
+    <div className="flex items-center">
+      {renderLoader()}
+      {text && <span className="ml-3 text-gray-700">{text}</span>}
     </div>
   );
-}
+};
+
+export default Loading;
 
 // Özel stil için global CSS
 export const loadingStyles = `

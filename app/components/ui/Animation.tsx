@@ -1,7 +1,7 @@
 'use client'
 
 import { ReactNode } from 'react';
-import { motion, Variants, HTMLMotionProps } from 'framer-motion';
+import { motion, Variants } from 'framer-motion';
 
 // Görünür olma animasyonu
 export function FadeIn({
@@ -15,7 +15,8 @@ export function FadeIn({
   delay?: number;
   duration?: number;
   className?: string;
-} & HTMLMotionProps<'div'>) {
+  [key: string]: any;
+}) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -43,7 +44,8 @@ export function SlideUp({
   duration?: number;
   distance?: number;
   className?: string;
-} & HTMLMotionProps<'div'>) {
+  [key: string]: any;
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, y: distance }}
@@ -69,7 +71,8 @@ export function ScaleIn({
   delay?: number;
   duration?: number;
   className?: string;
-} & HTMLMotionProps<'div'>) {
+  [key: string]: any;
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
@@ -95,7 +98,8 @@ export function StaggeredList({
   delay?: number;
   staggerDelay?: number;
   className?: string;
-} & HTMLMotionProps<'div'>) {
+  [key: string]: any;
+}) {
   return (
     <motion.div
       className={className}
@@ -135,7 +139,8 @@ export function PageTransition({
 }: {
   children: ReactNode;
   className?: string;
-} & HTMLMotionProps<'div'>) {
+  [key: string]: any;
+}) {
   const pageVariants: Variants = {
     initial: {
       opacity: 0,
@@ -182,7 +187,8 @@ export function Highlight({
   children: ReactNode;
   color?: 'blue' | 'green' | 'yellow' | 'red';
   className?: string;
-} & HTMLMotionProps<'div'>) {
+  [key: string]: any;
+}) {
   const colorClasses = {
     blue: 'bg-blue-100',
     green: 'bg-green-100',
@@ -216,7 +222,8 @@ export function WaveBackground({
   children?: ReactNode;
   className?: string;
   color?: 'blue' | 'green' | 'purple';
-} & HTMLMotionProps<'div'>) {
+  [key: string]: any;
+}) {
   const colorClasses = {
     blue: 'from-blue-100 via-white to-blue-50',
     green: 'from-green-100 via-white to-green-50',
@@ -256,7 +263,8 @@ export function PulseEffect({
   children: ReactNode;
   className?: string;
   color?: 'blue' | 'green' | 'red' | 'yellow';
-} & HTMLMotionProps<'div'>) {
+  [key: string]: any;
+}) {
   const colorClasses = {
     blue: 'shadow-blue-200',
     green: 'shadow-green-200',
@@ -294,7 +302,8 @@ export function Shimmer({
 }: {
   children: ReactNode;
   className?: string;
-} & HTMLMotionProps<'div'>) {
+  [key: string]: any;
+}) {
   return (
     <motion.div
       className={`relative overflow-hidden ${className}`}
@@ -327,7 +336,8 @@ export function CardHover({
   children: ReactNode;
   className?: string;
   hoverScale?: number;
-} & HTMLMotionProps<'div'>) {
+  [key: string]: any;
+}) {
   return (
     <motion.div
       className={`rounded-lg ${className}`}

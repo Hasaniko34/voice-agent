@@ -144,8 +144,10 @@ export function ContentHeader({
   );
 }
 
-export default {
+const HeaderComponents = {
   Header,
   SectionHeader,
   ContentHeader,
-}; 
+};
+
+export default HeaderComponents; 
