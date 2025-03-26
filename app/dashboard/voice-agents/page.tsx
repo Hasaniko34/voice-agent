@@ -8,6 +8,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import EmptyState from '@/app/components/ui/EmptyState';
 import Button from '@/app/components/ui/Button';
 import Input from '@/app/components/ui/Input';
+import { Header, SectionHeader } from '@/app/components/ui/Header';
+import { PageTransition, CardHover, StaggeredList, SlideUp } from '@/app/components/ui/Animation';
+import Loading from '@/app/components/ui/Loading';
 
 // Voice Agent tipi
 type VoiceAgent = {
@@ -45,11 +48,15 @@ export default function VoiceAgents() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showDetails, setShowDetails] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Voice Agent'ları getir
   useEffect(() => {
     const fetchAgents = async () => {
       try {
+        // Yükleme simülasyonu - gerçek uygulamada bu gecikme olmayacak
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
         const response = await fetch('/api/voice-agents');
         
         if (!response.ok) {
@@ -140,6 +147,8 @@ export default function VoiceAgents() {
     }
     
     try {
+      setIsDeleting(true);
+      
       const response = await fetch(`/api/voice-agents?id=${id}`, {
         method: 'DELETE',
       });
@@ -154,9 +163,12 @@ export default function VoiceAgents() {
         const agentId = agent._id || agent.id;
         return agentId !== id;
       }));
+      
+      setIsDeleting(false);
     } catch (error) {
       console.error('Agent silme hatası:', error);
       alert(`Agent silinemedi: ${(error as Error).message}`);
+      setIsDeleting(false);
     }
   };
   
@@ -195,34 +207,24 @@ export default function VoiceAgents() {
     }
   };
   
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        <span className="ml-3 text-blue-500 font-medium">Yükleniyor...</span>
-      </div>
-    );
-  }
-  
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Voice Agents</h1>
-          <p className="text-gray-600 mt-1">Sesli asistanlarınızı yönetin ve yenilerini oluşturun</p>
-        </div>
-        
-        <Button
-          variant="primary"
-          icon={FiPlus}
-          onClick={() => router.push('/dashboard/voice-agents/create')}
-        >
-          Voice Agent Oluştur
-        </Button>
-      </div>
+    <PageTransition className="p-6">
+      <Header
+        title="Voice Agents"
+        subtitle="Sesli asistanlarınızı yönetin ve yenilerini oluşturun"
+        actions={
+          <Button
+            variant="primary"
+            icon={FiPlus}
+            onClick={() => router.push('/dashboard/voice-agents/create')}
+          >
+            Voice Agent Oluştur
+          </Button>
+        }
+      />
       
       {/* Araç Çubuğu */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+      <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm mb-6">
         <div className="flex flex-col md:flex-row gap-4">
           {/* Arama Kutusu */}
           <div className="flex-1">
@@ -246,6 +248,7 @@ export default function VoiceAgents() {
                 className="appearance-none pl-10 pr-8 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
+                aria-label="Kategoriye göre filtrele"
               >
                 {categories.map(category => (
                   <option key={category.id} value={category.id}>
@@ -273,6 +276,7 @@ export default function VoiceAgents() {
                   setSortBy(newSortBy as any);
                   setSortOrder(newSortOrder as any);
                 }}
+                aria-label="Sıralama seçenekleri"
               >
                 <option value="name-asc">İsim (A-Z)</option>
                 <option value="name-desc">İsim (Z-A)</option>
@@ -311,8 +315,18 @@ export default function VoiceAgents() {
         </div>
       </div>
       
+      <SectionHeader
+        title="Ses Asistanlarınız"
+        subtitle={`Toplam ${filteredAgents.length} voice agent`}
+      />
+      
       {/* Voice Agents Listesi */}
-      {filteredAgents.length === 0 ? (
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <Loading variant="spinner" size="large" />
+          <span className="ml-3 text-blue-500 font-medium">Yükleniyor...</span>
+        </div>
+      ) : filteredAgents.length === 0 ? (
         <EmptyState
           icon={FiInbox}
           title="Voice Agent Bulunamadı"
@@ -323,100 +337,150 @@ export default function VoiceAgents() {
           }}
         />
       ) : (
-        <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+        <StaggeredList className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
           {filteredAgents.map(agent => {
             const agentId = agent._id || agent.id;
             
             return (
-              <motion.div
-                key={agentId}
-                layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className={`bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow ${
-                  viewMode === 'list' ? 'flex' : 'flex flex-col'
-                }`}
-              >
-                {/* Agent İçeriği */}
-                <div className={`${
-                  viewMode === 'list' ? 'flex-1 flex items-center p-4' : 'p-6'
-                }`}>
-                  <div className={`${viewMode === 'list' ? 'flex-1 flex items-center' : ''}`}>
-                    {/* Agent İkonu ve Temel Bilgiler */}
-                    <div className={`${viewMode === 'list' ? 'flex items-center flex-1' : ''}`}>
-                      <div className={`${
-                        viewMode === 'list' ? 'mr-4' : 'mb-4 flex items-center justify-between'
-                      }`}>
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 bg-blue-100 text-blue-600 rounded-full p-3">
-                            <FiMic size={viewMode === 'list' ? 20 : 24} />
-                          </div>
-                          {viewMode === 'list' && (
-                            <div className="ml-4">
-                              <h3 className="text-lg font-semibold text-gray-900">{agent.name}</h3>
-                              <p className="text-sm text-gray-700 line-clamp-1">
-                                {agent.description}
-                              </p>
+              <CardHover key={agentId}>
+                <div
+                  className={`bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden ${
+                    viewMode === 'list' ? 'flex' : 'flex flex-col'
+                  }`}
+                >
+                  {/* Agent İçeriği */}
+                  <div className={`${
+                    viewMode === 'list' ? 'flex-1 flex items-center p-4' : 'p-6'
+                  }`}>
+                    <div className={`${viewMode === 'list' ? 'flex-1 flex items-center' : ''}`}>
+                      {/* Agent İkonu ve Temel Bilgiler */}
+                      <div className={`${viewMode === 'list' ? 'flex items-center flex-1' : ''}`}>
+                        <div className={`${
+                          viewMode === 'list' ? 'mr-4' : 'mb-4 flex items-center justify-between'
+                        }`}>
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 bg-blue-100 text-blue-600 rounded-full p-3">
+                              <FiMic size={viewMode === 'list' ? 20 : 24} />
                             </div>
+                            {viewMode === 'list' && (
+                              <div className="ml-4">
+                                <h3 className="text-lg font-semibold text-gray-900">{agent.name}</h3>
+                                <p className="text-sm text-gray-700 line-clamp-1">
+                                  {agent.description}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {viewMode === 'grid' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              icon={FiStar}
+                              className={`${agent.isFavorite ? 'text-yellow-500' : 'text-gray-400'}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFavorite(agentId!);
+                              }}
+                              aria-label={agent.isFavorite ? 'Favorilerden çıkar' : 'Favorilere ekle'}
+                            />
                           )}
                         </div>
                         
                         {viewMode === 'grid' && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            icon={FiStar}
-                            className={`${agent.isFavorite ? 'text-yellow-500' : 'text-gray-400'}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleFavorite(agentId!);
-                            }}
-                            aria-label={agent.isFavorite ? 'Favorilerden çıkar' : 'Favorilere ekle'}
-                          />
+                          <>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">{agent.name}</h3>
+                            <p className="text-sm text-gray-700 mb-4 line-clamp-2">
+                              {agent.description}
+                            </p>
+                          </>
                         )}
                       </div>
                       
-                      {viewMode === 'grid' && (
-                        <>
-                          <h3 className="text-lg font-semibold text-gray-900 mb-2">{agent.name}</h3>
-                          <p className="text-sm text-gray-700 mb-4 line-clamp-2">
-                            {agent.description}
-                          </p>
-                        </>
+                      {/* List View - Extra Info and Action Buttons */}
+                      {viewMode === 'list' && (
+                        <div className="flex items-center ml-auto space-x-6">
+                          <div className="hidden md:flex flex-col items-center mr-6">
+                            <span className="text-sm font-medium text-gray-700">Kategori</span>
+                            <span className="text-sm text-gray-700">{getCategoryName(agent.category || 'other')}</span>
+                          </div>
+                          
+                          <div className="hidden md:flex flex-col items-center mr-6">
+                            <span className="text-sm font-medium text-gray-700">Kullanım</span>
+                            <span className="text-sm text-gray-700">{agent.usageCount} kez</span>
+                          </div>
+                          
+                          <div className="hidden lg:flex flex-col items-center mr-6">
+                            <span className="text-sm font-medium text-gray-700">Son Kullanım</span>
+                            <span className="text-sm text-gray-700">{agent.lastUsed ? formatLastUsed(agent.lastUsed) : '-'}</span>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              icon={FiStar}
+                              className={`${agent.isFavorite ? 'text-yellow-500' : 'text-gray-400'}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFavorite(agentId!);
+                              }}
+                              aria-label={agent.isFavorite ? 'Favorilerden çıkar' : 'Favorilere ekle'}
+                            />
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              icon={FiEdit}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/dashboard/voice-agents/${agentId}/edit`);
+                              }}
+                              aria-label="Düzenle"
+                            />
+                            <Button
+                              variant="danger"
+                              size="icon"
+                              icon={isDeleting ? undefined : FiTrash2}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteAgent(agentId!);
+                              }}
+                              disabled={isDeleting}
+                              aria-label="Sil"
+                            >
+                              {isDeleting && <Loading variant="spinner" size="small" className="text-current" />}
+                            </Button>
+                          </div>
+                        </div>
                       )}
                     </div>
-                    
-                    {/* List View - Extra Info and Action Buttons */}
-                    {viewMode === 'list' && (
-                      <div className="flex items-center ml-auto space-x-6">
-                        <div className="hidden md:flex flex-col items-center mr-6">
-                          <span className="text-sm font-medium text-gray-700">Kategori</span>
-                          <span className="text-sm text-gray-700">{getCategoryName(agent.category || 'other')}</span>
+                  </div>
+                  
+                  {/* Grid View - Agent Alt Bilgileri ve İşlem Butonları */}
+                  {viewMode === 'grid' && (
+                    <>
+                      <div className="px-6 py-3 flex justify-between items-center border-t border-gray-200 text-xs text-gray-700">
+                        <div className="flex items-center">
+                          <FiFilter className="mr-1 text-gray-500" />
+                          <span>{getCategoryName(agent.category || 'other')}</span>
                         </div>
-                        
-                        <div className="hidden md:flex flex-col items-center mr-6">
-                          <span className="text-sm font-medium text-gray-700">Kullanım</span>
-                          <span className="text-sm text-gray-700">{agent.usageCount} kez</span>
+                        <div className="flex items-center">
+                          <FiActivity className="mr-1 text-gray-500" />
+                          <span>{agent.usageCount} kez kullanıldı</span>
                         </div>
+                      </div>
+                      
+                      <div className="px-6 py-3 flex justify-between bg-gray-50 border-t border-gray-200">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          icon={FiInfo}
+                          onClick={() => setShowDetails(showDetails === agentId ? null : agentId!)}
+                        >
+                          {showDetails === agentId ? 'Gizle' : 'Detaylar'}
+                        </Button>
                         
-                        <div className="hidden lg:flex flex-col items-center mr-6">
-                          <span className="text-sm font-medium text-gray-700">Son Kullanım</span>
-                          <span className="text-sm text-gray-700">{agent.lastUsed ? formatLastUsed(agent.lastUsed) : '-'}</span>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            icon={FiStar}
-                            className={`${agent.isFavorite ? 'text-yellow-500' : 'text-gray-400'}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleFavorite(agentId!);
-                            }}
-                            aria-label={agent.isFavorite ? 'Favorilerden çıkar' : 'Favorilere ekle'}
-                          />
+                        <div className="flex space-x-2">
                           <Button
                             variant="outline"
                             size="icon"
@@ -430,121 +494,74 @@ export default function VoiceAgents() {
                           <Button
                             variant="danger"
                             size="icon"
-                            icon={FiTrash2}
+                            icon={isDeleting ? undefined : FiTrash2}
                             onClick={(e) => {
                               e.stopPropagation();
                               deleteAgent(agentId!);
                             }}
+                            disabled={isDeleting}
                             aria-label="Sil"
-                          />
+                          >
+                            {isDeleting && <Loading variant="spinner" size="small" className="text-current" />}
+                          </Button>
                         </div>
                       </div>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Grid View - Agent Alt Bilgileri ve İşlem Butonları */}
-                {viewMode === 'grid' && (
-                  <>
-                    <div className="px-6 py-3 flex justify-between items-center border-t border-gray-200 text-xs text-gray-700">
-                      <div className="flex items-center">
-                        <FiFilter className="mr-1 text-gray-500" />
-                        <span>{getCategoryName(agent.category || 'other')}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <FiActivity className="mr-1 text-gray-500" />
-                        <span>{agent.usageCount} kez kullanıldı</span>
-                      </div>
-                    </div>
-                    
-                    <div className="px-6 py-3 flex justify-between bg-gray-50 border-t border-gray-200">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        icon={FiInfo}
-                        onClick={() => setShowDetails(showDetails === agentId ? null : agentId!)}
-                      >
-                        {showDetails === agentId ? 'Gizle' : 'Detaylar'}
-                      </Button>
                       
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          icon={FiEdit}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/dashboard/voice-agents/${agentId}/edit`);
-                          }}
-                          aria-label="Düzenle"
-                        />
-                        <Button
-                          variant="danger"
-                          size="icon"
-                          icon={FiTrash2}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteAgent(agentId!);
-                          }}
-                          aria-label="Sil"
-                        />
-                      </div>
-                    </div>
-                    
-                    {/* Detay Paneli */}
-                    <AnimatePresence>
-                      {showDetails === agentId && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.3 }}
-                          className="overflow-hidden border-t border-gray-200 px-6 py-4 bg-gray-50"
-                        >
-                          <h4 className="font-medium text-sm text-gray-900 mb-2">Prompt:</h4>
-                          <p className="text-sm text-gray-700 mb-3 bg-white p-2 rounded border border-gray-200 max-h-24 overflow-y-auto">
-                            {agent.prompt || 'Prompt bilgisi bulunamadı.'}
-                          </p>
-                          
-                          <div className="grid grid-cols-2 gap-3 text-sm">
-                            <div>
-                              <span className="font-medium text-gray-900">Ses:</span>
-                              <span className="text-gray-700 ml-2">{agent.voice || 'Belirtilmemiş'}</span>
+                      {/* Detay Paneli */}
+                      <AnimatePresence>
+                        {showDetails === agentId && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="overflow-hidden border-t border-gray-200 px-6 py-4 bg-gray-50"
+                          >
+                            <h4 className="font-medium text-sm text-gray-900 mb-2">Prompt:</h4>
+                            <p className="text-sm text-gray-700 mb-3 bg-white p-2 rounded border border-gray-200 max-h-24 overflow-y-auto">
+                              {agent.prompt || 'Prompt bilgisi bulunamadı.'}
+                            </p>
+                            
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                              <div>
+                                <span className="font-medium text-gray-900">Ses:</span>
+                                <span className="text-gray-700 ml-2">{agent.voice || 'Belirtilmemiş'}</span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-900">Oluşturulma:</span>
+                                <span className="text-gray-700 ml-2">{formatDate(agent.createdAt)}</span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-900">Kullanım:</span>
+                                <span className="text-gray-700 ml-2">{agent.usageCount} kez</span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-900">Son Kullanım:</span>
+                                <span className="text-gray-700 ml-2">{agent.lastUsed ? formatLastUsed(agent.lastUsed) : '-'}</span>
+                              </div>
                             </div>
-                            <div>
-                              <span className="font-medium text-gray-900">Oluşturulma:</span>
-                              <span className="text-gray-700 ml-2">{formatDate(agent.createdAt)}</span>
+                            
+                            <div className="mt-4 flex justify-center">
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                icon={FiMessageSquare}
+                                onClick={() => router.push(`/dashboard/voice-agents/${agentId}/chat`)}
+                              >
+                                Konuşma Başlat
+                              </Button>
                             </div>
-                            <div>
-                              <span className="font-medium text-gray-900">Kullanım:</span>
-                              <span className="text-gray-700 ml-2">{agent.usageCount} kez</span>
-                            </div>
-                            <div>
-                              <span className="font-medium text-gray-900">Son Kullanım:</span>
-                              <span className="text-gray-700 ml-2">{agent.lastUsed ? formatLastUsed(agent.lastUsed) : '-'}</span>
-                            </div>
-                          </div>
-                          
-                          <div className="mt-4 flex justify-center">
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              icon={FiMessageSquare}
-                              onClick={() => {/* Konuşma başlat */}}
-                            >
-                              Konuşma Başlat
-                            </Button>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </>
-                )}
-              </motion.div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </>
+                  )}
+                </div>
+              </CardHover>
             );
           })}
-        </div>
+        </StaggeredList>
       )}
-    </div>
+    </PageTransition>
   );
 } 

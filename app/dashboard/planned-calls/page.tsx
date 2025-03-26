@@ -6,6 +6,9 @@ import EmptyState from '@/app/components/ui/EmptyState';
 import Modal from '@/app/components/ui/Modal';
 import Button from '@/app/components/ui/Button';
 import Input from '@/app/components/ui/Input';
+import { Header, SectionHeader } from '@/app/components/ui/Header';
+import { PageTransition, CardHover, SlideUp, StaggeredList } from '@/app/components/ui/Animation';
+import Loading from '@/app/components/ui/Loading';
 
 // Demo voice agent verileri
 const demoVoiceAgents = [
@@ -107,6 +110,7 @@ export default function PlannedCallsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'scheduled' | 'in_progress' | 'completed'>('all');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   
   // Filtreleme fonksiyonu
   const filteredCalls = demoPlannedCalls.filter(call => {
@@ -179,6 +183,15 @@ export default function PlannedCallsPage() {
     const agent = demoVoiceAgents.find(a => a.id === agentId);
     return agent ? agent.name : 'Ses Asistanı';
   };
+
+  // Yükleme durumunun simüle edilmesi
+  const simulateLoading = (callback: () => void) => {
+    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(false);
+      callback();
+    }, 800);
+  };
   
   // Modal footer komponentleri
   const createCallModalFooter = (
@@ -210,17 +223,35 @@ export default function PlannedCallsPage() {
         disabled={!selectedFile}
         icon={FiCheck}
         onClick={() => {
-          setIsFileUploadModalOpen(false);
+          simulateLoading(() => {
+            setIsFileUploadModalOpen(false);
+          });
         }}
       >
         Kişileri Aktar
       </Button>
     </div>
   );
+
+  // Yeni arama oluşturma işlemi
+  const handleNewCallClick = () => {
+    setIsModalOpen(true);
+  };
   
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold mb-8 text-gray-900">Planlı Aramalar</h1>
+    <PageTransition className="p-6">
+      <Header
+        title="Planlı Aramalar"
+        subtitle="Otomatik aramaları planla ve yönet"
+        actions={
+          <Button 
+            icon={FiPlus}
+            onClick={handleNewCallClick}
+          >
+            Yeni Planlı Arama
+          </Button>
+        }
+      />
       
       {/* Arama ve Filtreleme */}
       <div className="flex flex-col md:flex-row justify-between gap-4 bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
@@ -239,145 +270,158 @@ export default function PlannedCallsPage() {
             className="border border-gray-300 rounded-md py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value as any)}
+            aria-label="Duruma göre filtrele"
           >
             <option value="all">Tüm Durumlar</option>
             <option value="scheduled">Planlandı</option>
             <option value="in_progress">Devam Ediyor</option>
             <option value="completed">Tamamlandı</option>
           </select>
-          
-          <Button 
-            icon={FiPlus}
-            onClick={() => setIsModalOpen(true)}
-          >
-            Yeni Planlı Arama
-          </Button>
         </div>
       </div>
       
       {/* Planlı Aramalar Listesi */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {filteredCalls.length === 0 ? (
-          <div className="col-span-2">
-            <EmptyState
-              icon={FiInbox}
-              title="Planlı Arama Bulunamadı"
-              description="Filtreyi değiştirmeyi veya yeni bir planlı arama oluşturmayı deneyebilirsiniz."
-              action={{
-                label: "Yeni Planlı Arama",
-                onClick: () => setIsModalOpen(true)
-              }}
-            />
-          </div>
-        ) : (
-          filteredCalls.map((call) => (
-            <div key={call.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-              <div className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">{call.name}</h2>
-                    <p className="mt-1 text-gray-700">{call.description}</p>
-                    <div className="mt-2 flex items-center">
-                      <FiMic className="text-blue-500 mr-1" />
-                      <span className="text-sm text-gray-700">
-                        {getVoiceAgentName(call.voiceAgentId)}
-                      </span>
-                    </div>
-                  </div>
-                  <span 
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(call.status)}`}
-                  >
-                    {getStatusText(call.status)}
-                  </span>
-                </div>
-                
-                <div className="mt-4 grid grid-cols-2 gap-4">
-                  <div className="flex items-center text-sm text-gray-700">
-                    <FiCalendar className="mr-2 text-gray-500" />
-                    <span>{call.scheduledDate}</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-700">
-                    <FiClock className="mr-2 text-gray-500" />
-                    <span>{call.scheduledTime}</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-700">
-                    <FiUsers className="mr-2 text-gray-500" />
-                    <span>{call.targetCount} Kişi</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-700">
-                    <FiRepeat className="mr-2 text-gray-500" />
-                    <span>{getFrequencyText(call.frequency)}</span>
-                  </div>
-                </div>
-                
-                <div className="mt-4">
-                  <div className="relative pt-1">
-                    <div className="flex mb-2 items-center justify-between">
-                      <div>
-                        <span className="text-xs font-semibold inline-block text-blue-700">
-                          İlerleme
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-xs font-semibold inline-block text-blue-700">
-                          {Math.round((call.completedCount / call.targetCount) * 100)}%
-                        </span>
-                      </div>
-                    </div>
-                    <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-blue-100">
-                      <div 
-                        style={{ width: `${(call.completedCount / call.targetCount) * 100}%` }} 
-                        className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500"
-                      ></div>
-                    </div>
-                    <span className="text-xs text-gray-700">{call.completedCount} / {call.targetCount} tamamlandı</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 flex justify-between">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  icon={FiUsers}
-                  onClick={() => {/* Kişileri görüntüle */}}
-                >
-                  Kişileri Görüntüle
-                </Button>
-                
-                <div className="flex space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    icon={FiEdit}
-                    onClick={() => {/* Düzenle */}}
-                    aria-label="Düzenle"
-                  />
-                  
-                  {call.status !== 'completed' && (
-                    <Button
-                      variant="success"
-                      size="sm"
-                      icon={FiPhone}
-                      onClick={() => {/* Aramaları başlat */}}
-                    >
-                      {call.status === 'in_progress' ? 'Devam Et' : 'Başlat'}
-                    </Button>
-                  )}
-                  
-                  <Button
-                    variant="danger"
-                    size="icon"
-                    icon={FiTrash2}
-                    onClick={() => {/* Sil */}}
-                    aria-label="Sil"
-                  />
-                </div>
-              </div>
+      <SectionHeader
+        title="Aramalarınız"
+        subtitle={`Toplam ${filteredCalls.length} planlı arama`}
+      />
+      
+      {isLoading ? (
+        <div className="w-full flex justify-center py-12">
+          <Loading size="large" variant="spinner" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {filteredCalls.length === 0 ? (
+            <div className="col-span-2">
+              <EmptyState
+                icon={FiInbox}
+                title="Planlı Arama Bulunamadı"
+                description="Filtreyi değiştirmeyi veya yeni bir planlı arama oluşturmayı deneyebilirsiniz."
+                action={{
+                  label: "Yeni Planlı Arama",
+                  onClick: handleNewCallClick
+                }}
+              />
             </div>
-          ))
-        )}
-      </div>
+          ) : (
+            <StaggeredList className="col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {filteredCalls.map((call) => (
+                <CardHover key={call.id}>
+                  <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 h-full flex flex-col overflow-hidden">
+                    <div className="p-6 flex-grow">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h2 className="text-xl font-bold text-gray-900">{call.name}</h2>
+                          <p className="mt-1 text-gray-700">{call.description}</p>
+                          <div className="mt-2 flex items-center">
+                            <FiMic className="text-blue-500 mr-1" />
+                            <span className="text-sm text-gray-700">
+                              {getVoiceAgentName(call.voiceAgentId)}
+                            </span>
+                          </div>
+                        </div>
+                        <span 
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(call.status)}`}
+                        >
+                          {getStatusText(call.status)}
+                        </span>
+                      </div>
+                      
+                      <div className="mt-4 grid grid-cols-2 gap-4">
+                        <div className="flex items-center text-sm text-gray-700">
+                          <FiCalendar className="mr-2 text-gray-500" />
+                          <span>{call.scheduledDate}</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-700">
+                          <FiClock className="mr-2 text-gray-500" />
+                          <span>{call.scheduledTime}</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-700">
+                          <FiUsers className="mr-2 text-gray-500" />
+                          <span>{call.targetCount} Kişi</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-700">
+                          <FiRepeat className="mr-2 text-gray-500" />
+                          <span>{getFrequencyText(call.frequency)}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4">
+                        <div className="relative pt-1">
+                          <div className="flex mb-2 items-center justify-between">
+                            <div>
+                              <span className="text-xs font-semibold inline-block text-blue-700">
+                                İlerleme
+                              </span>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-xs font-semibold inline-block text-blue-700">
+                                {Math.round((call.completedCount / call.targetCount) * 100)}%
+                              </span>
+                            </div>
+                          </div>
+                          <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-blue-100">
+                            <div 
+                              style={{ width: `${(call.completedCount / call.targetCount) * 100}%` }} 
+                              className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500"
+                            ></div>
+                          </div>
+                          <span className="text-xs text-gray-700">{call.completedCount} / {call.targetCount} tamamlandı</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 flex justify-between">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        icon={FiUsers}
+                        onClick={() => {/* Kişileri görüntüle */}}
+                      >
+                        Kişileri Görüntüle
+                      </Button>
+                      
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          icon={FiEdit}
+                          onClick={() => {/* Düzenle */}}
+                          aria-label="Düzenle"
+                        />
+                        
+                        {call.status !== 'completed' && (
+                          <Button
+                            variant="success"
+                            size="sm"
+                            icon={FiPhone}
+                            onClick={() => {
+                              simulateLoading(() => {
+                                // Aramaları başlat
+                              });
+                            }}
+                          >
+                            {call.status === 'in_progress' ? 'Devam Et' : 'Başlat'}
+                          </Button>
+                        )}
+                        
+                        <Button
+                          variant="danger"
+                          size="icon"
+                          icon={FiTrash2}
+                          onClick={() => {/* Sil */}}
+                          aria-label="Sil"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </CardHover>
+              ))}
+            </StaggeredList>
+          )}
+        </div>
+      )}
       
       {/* Yeni Planlı Arama Modal */}
       <Modal
@@ -556,7 +600,7 @@ export default function PlannedCallsPage() {
               />
               
               {!selectedFile ? (
-                <div>
+                <SlideUp>
                   <FiUpload className="mx-auto h-12 w-12 text-gray-400" />
                   <p className="mt-2 text-sm text-gray-700">
                     Dosya yüklemek için tıklayın veya sürükleyip bırakın
@@ -567,9 +611,9 @@ export default function PlannedCallsPage() {
                   >
                     Dosya Seç
                   </label>
-                </div>
+                </SlideUp>
               ) : (
-                <div>
+                <SlideUp>
                   <div className="flex items-center justify-center">
                     <FiFile className="h-8 w-8 text-blue-500 mr-2" />
                     <span className="text-gray-900 font-medium">{selectedFile.name}</span>
@@ -583,10 +627,16 @@ export default function PlannedCallsPage() {
                   >
                     Kaldır
                   </Button>
-                </div>
+                </SlideUp>
               )}
             </div>
           </div>
+          
+          {isLoading && (
+            <div className="flex justify-center">
+              <Loading variant="spinner" size="medium" />
+            </div>
+          )}
           
           <div>
             <h4 className="text-sm font-medium text-gray-700 mb-2">Şablon</h4>
@@ -604,6 +654,6 @@ export default function PlannedCallsPage() {
           </div>
         </div>
       </Modal>
-    </div>
+    </PageTransition>
   );
 } 
